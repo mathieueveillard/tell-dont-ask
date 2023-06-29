@@ -1,32 +1,53 @@
-// @ts-ignore see https://github.com/jest-community/jest-extended#setup
-import * as matchers from "jest-extended";
-import fc from "fast-check";
+const ONE_HOUR_IN_MINUTES = 60;
 
-expect.extend(matchers);
+// Don't
+namespace Ask {
+  class Watch {
+    constructor(private timeInMinutes: number) {}
 
-test("A simple test (Jest)", () => {
-  expect(1 + 1).toEqual(2);
-});
+    getTime = () => this.timeInMinutes;
 
-test("Additional matchers (jest-extended)", () => {
-  expect([1, 0]).toIncludeSameMembers([0, 1]);
-});
+    setTime = (timeInMinutes: number) => {
+      this.timeInMinutes = timeInMinutes;
+    };
+  }
 
-test("Property-based testing (fast-check)", () => {
-  type Boundaries = {
-    min: number;
-    max: number;
-  };
+  test("Switch to summer time", () => {
+    const watch = new Watch(17 * ONE_HOUR_IN_MINUTES);
+    watch.setTime(watch.getTime() + ONE_HOUR_IN_MINUTES);
+    expect(watch.getTime()).toEqual(18 * ONE_HOUR_IN_MINUTES);
+  });
+}
 
-  const minmax =
-    ({ min, max }: Boundaries) =>
-    (n: number): number =>
-      Math.min(max, Math.max(min, n));
+// Do
+namespace Tell {
+  class Watch {
+    constructor(private timeInMinutes: number) {}
 
-  fc.assert(
-    fc.property(fc.integer(), (n): boolean => {
-      const result = minmax({ min: 1, max: 10 })(n);
-      return 1 <= result && result <= 10;
-    })
-  );
-});
+    whatTimeIsIt = (): string => {
+      const minutes = this.timeInMinutes % ONE_HOUR_IN_MINUTES;
+      const hours = (this.timeInMinutes - minutes) / ONE_HOUR_IN_MINUTES;
+      return `Il est ${hours} heure(s) et ${minutes} minute(s).`;
+    };
+
+    switchToSummerTime = () => {
+      this.timeInMinutes += ONE_HOUR_IN_MINUTES;
+    };
+
+    dangerouslySetBackOnTime = (timeInMinutes: number) => {
+      this.timeInMinutes = timeInMinutes;
+    };
+  }
+
+  test("Switch to summer time", () => {
+    const watch = new Watch(17 * ONE_HOUR_IN_MINUTES);
+    watch.switchToSummerTime();
+    expect(watch.whatTimeIsIt()).toEqual("Il est 18 heure(s) et 0 minute(s).");
+  });
+
+  test("Set a watch back", () => {
+    const watch = new Watch(17 * ONE_HOUR_IN_MINUTES);
+    watch.dangerouslySetBackOnTime(17 * ONE_HOUR_IN_MINUTES + 1);
+    expect(watch.whatTimeIsIt()).toEqual("Il est 17 heure(s) et 1 minute(s).");
+  });
+}
